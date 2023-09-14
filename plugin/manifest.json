@@ -1,21 +1,26 @@
 {
-  "id": "Test-i4fwp7",
-  "name": "自动拼音200",
-  "version": "1.0.0",
+  "id": "35227331",
+  "name": "自动拼音",
+  "version": "0.0.2",
   "main": "index.html",
   "manifestVersion": 5,
   "host": [
     {
       "app": "ID",
-      "minVersion": "18.1"
+      "minVersion": "18.5"
     }
   ],
+  "requiredPermissions": {
+    "network": {
+      "domains": "all"
+    }
+  },
   "entrypoints": [
     {
       "type": "panel",
       "id": "demos",
       "label": {
-        "default": "React Panel"
+        "default": "拼音"
       },
       "minimumSize": {
         "width": 230,

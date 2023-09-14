@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { WC } from "./WC.jsx";
-
+import{ChangeList} from "./ChangeList.jsx";
 export const { app } = require("indesign");
 console.log("得到的indesign程序：", app);
 
@@ -43,18 +43,21 @@ const pinyinMap = {
     "i": ["i", "ī", "í", "ǐ", "ì"],
     "ü": ["ü", "ǖ", "ǘ", "ǚ", "ǜ"],
     "u": ["u", "ū", "ú", "ǔ", "ù"],
-    "ai": ["ai", "aī", "aí", "aǐ", "aì"],
-    "ei": ["ei", "eī", "eí", "eǐ", "eì"],
+    "ai": ["ai", "āi", "ái", "ǎi", "ài"],
+    "ei": ["ei", "ēi", "éi", "ěi", "èi"],
     "ui": ["ui", "uī", "uí", "uǐ", "uì"],
-    "ao": ["ao", "aō", "aó", "aǒ", "aò"],
-    "ou": ["ou", "oū", "oú", "oǔ", "où"],
+    "ao": ["ao", "āo", "áo", "ǎo", "ào"],
+    "ou": ["ou", "ōu", "óu", "ǒu", "òu"],
     "iu": ["iu", "iū", "iú", "iǔ", "iù"],
     "ie": ["ie", "iē", "ié", "iě", "iè"],
     "üe": ["üe", "üē", "üé", "üě", "üè"],
+    "ue": ["ue", "uē", "ué", "uě", "uè"],
     "er": ["er", "èr", "èr", "èr", "èr"],
     "an": ["an", "ān", "án", "ǎn", "àn"],
     "en": ["en", "ēn", "én", "ěn", "èn"],
     "in": ["in", "īn", "ín", "ǐn", "ìn"],
+    "ia": ["ia", "iā", "iá", "iǎ", "ià"],
+    "iao": ["iao", "iāo", "iáo", "iǎo", "iào"],
     "un": ["un", "ūn", "ún", "ǔn", "ùn"],
     "ün": ["ün", "ūn", "ún", "ǔn", "ùn"],
     "ang": ["ang", "āng", "áng", "ǎng", "àng"],
@@ -62,6 +65,9 @@ const pinyinMap = {
     "ing": ["ing", "īng", "íng", "ǐng", "ìng"],
     "ong": ["ong", "ōng", "óng", "ǒng", "òng"],
     "uan": ["uan", "uān", "uán", "uǎn", "uàn"],
+    "uang": ["uang", "uāng", "uáng", "uǎng", "uàng"],
+    "iang": ["iang", "iāng", "iáng", "iǎng", "iàng"],
+    "iong": ["iong", "iōng", "ióng", "iǒng", "iòng"],
 };
 
 // 定义韵母列表
@@ -69,8 +75,8 @@ const pinyinMap = {
 
 // 判断字符是否为韵母
 function isYunmu(char) {
-    const yunmuList =Object.keys(pinyinMap);
-    console.log("字典值",yunmuList);
+    const yunmuList = Object.keys(pinyinMap);
+    // console.log("字典值", yunmuList);
 
     for (let i = 0; i < yunmuList.length; i++) {
         const yunmu = yunmuList[i];
@@ -113,82 +119,34 @@ function convertToNumberedTonePinyin(pinyin) {
     const numbers = newPinyin.match(/\d+/g)
     const toneIndex = numbers !== null ? numbers.map(Number)[0] : 0
     const result = newPinyin.replace(/\d+/g, '');
-    console.log("得到的PINYIN：", [toneIndex, result, newPinyin]);
+    // console.log("得到的PINYIN：", [toneIndex, result, newPinyin]);
     return [toneIndex, result, newPinyin];
 }
 
 
 function convertToMarkedTonePinyin(pinyin, newTone) {
+    let tonesInfo = convertToNumberedTonePinyin(pinyin)
+    let convertPinyin = ""
 
-    const toneIndex = convertToNumberedTonePinyin(pinyin)[0]
-    const toneChar = convertToNumberedTonePinyin(pinyin)[1]
-    const shengYun = splitShengYun(toneChar)
-    const newPinyin = shengYun[0] + pinyinMap[shengYun[1]][newTone]
-    console.log("声母韵母",shengYun,newPinyin);
+    let toneIndex = tonesInfo[0]
+    let toneChar = tonesInfo[1]
+    if (toneChar !== "") {
+        const shengYun = splitShengYun(toneChar)
+        try {
+            convertPinyin = shengYun[0] + pinyinMap[shengYun[1]][newTone]
+        } catch (error) {
+            console.log("error", error)
+        }
+        
+        // console.log("声母韵母", shengYun, newPinyin);
 
-    return newPinyin
+    }
+
+    return convertPinyin
 
 }
-// 将带数字声调的拼音转换为带符号声调的拼音
-function convertToMarkedTonePinyin2(pinyin, newTone) {
-    pinyin = convertToNumberedTonePinyin(pinyin)[2]
 
-    function findKey(obj, value, compare = (a, b) => a === b) {
-        return Object.keys(obj).find(k => compare(obj[k], value))
-    }
-
-    let newPinyin = pinyin;
-    let tone = '';
-    for (let i = pinyin.length - 1; i >= 0; i--) {
-        const char = pinyin.charAt(i);
-        if (char >= '0' && char <= '4') {
-            tone = char;
-            break;
-        }
-    }
-    if (tone !== '') {
-        const toneIndex = pinyin.indexOf(tone);
-        if (newTone !== 0) {
-
-            newPinyin = pinyin.slice(0, toneIndex - 1) + findKey(toneMap, pinyin[toneIndex - 1] + newTone) + pinyin.slice(toneIndex + 1);
-        } else {
-            let reg = /[0-9]+/g;
-
-            newPinyin = pinyin.replace(reg, "");
-        }
-        // newPinyin = pinyin.slice(0, toneIndex) + toneMap[pinyin.slice(toneIndex, toneIndex + 1)] + pinyin.slice(toneIndex + 1);
-
-    }
-    return newPinyin;
-}
-
-// 示例用法
-// const pinyinWithNumberedTones = convertToNumberedTonePinyin('nǐ hǎo shìjiè');
-// console.log(pinyinWithNumberedTones); // 输出：ni3 hao3 shi4jie4
-
-// const pinyinWithMarkedTones = convertToMarkedTonePinyin(pinyinWithNumberedTones);
-// console.log(pinyinWithMarkedTones); // 输出：ní hǎo shìjiè
-
-
-
-const TONES = ['ā', 'á', 'ǎ', 'à', 'a'];
-
-//react 
 export function PinyinInput(props) {
-    // const [pin,setPin]=useState([]);
-
-    console.log("得到的pyiner：", props.pinyiner);
-
-    // function handlePinyinChange(event, s, i) {
-    //     const tone = event.target.value;
-    //     console.log("setPinyiner", props.setPinyiner);
-    //     let pinyiner =props.pinyiner
-    //     pinyiner[i] = e.target.value;
-
-
-    //     props.setPinyiner(props.pinyiner);
-    //     // setSelection
-    // }
 
     function handleToneChange(event, char, index) {
         // 获取输入的音调
@@ -199,6 +157,15 @@ export function PinyinInput(props) {
         console.log(tone);
 
     }
+    const getAppSelection=props.getAppSelection
+    const [isVisible, setIsVisible] = useState(new Array(props.pinyiner.length).fill(false));
+    const toggleVisibility = (e) => {
+        
+        const i = [...isVisible]
+        i[e]=!i[e]
+        console.log(i);
+        setIsVisible(i);
+      };
 
     return (
         <WC>
@@ -217,6 +184,10 @@ export function PinyinInput(props) {
                         <option value={convertToMarkedTonePinyin(s.rubyString, 0)}>轻声</option>
                     </select>
                     <input type="text" style={{ width: '40px' }} value={s.rubyString} onChange={(e) => handleToneChange(e, s, i)} />
+                    <button onClick={(e) => toggleVisibility(i)}>
+        {isVisible[i] ? '关闭' : '全局编辑'}
+      </button>
+      {isVisible[i] && <ChangeList app={app} char={s} getAppSelection={getAppSelection}></ChangeList>}
                     {i < props.pinyiner.length - 1 && ''}
                 </React.Fragment>
             ))}
