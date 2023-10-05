@@ -1,6 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect, useImperativeHandle  } from 'react';
 import { WC } from "./WC.jsx";
-import{ChangeList} from "./ChangeList.jsx";
+import { ChangeList } from "./ChangeList.jsx";
+import { GuessEditor } from './GuessEditor.jsx';
+import useAxios, { configure } from 'axios-hooks'
+// import LRU from 'lru-cache'
+import Axios from 'axios'
+import { useSetState,useUpdate } from 'ahooks';
 export const { app } = require("indesign");
 console.log("得到的indesign程序：", app);
 
@@ -59,12 +64,15 @@ const pinyinMap = {
     "ia": ["ia", "iā", "iá", "iǎ", "ià"],
     "iao": ["iao", "iāo", "iáo", "iǎo", "iào"],
     "un": ["un", "ūn", "ún", "ǔn", "ùn"],
-    "ün": ["ün", "ūn", "ún", "ǔn", "ùn"],
+    "uo": ["uo", "uō", "uó", "uǒ", "uò"],
+    "ün": ["ün", "ǖn", "ǘn", "ǚn", "ǜn"],
     "ang": ["ang", "āng", "áng", "ǎng", "àng"],
     "eng": ["eng", "ēng", "éng", "ěng", "èng"],
     "ing": ["ing", "īng", "íng", "ǐng", "ìng"],
     "ong": ["ong", "ōng", "óng", "ǒng", "òng"],
+    "ua": ["ua", "uā", "uá", "uǎ", "uà"],
     "uan": ["uan", "uān", "uán", "uǎn", "uàn"],
+    "uai": ["uai", "uāi", "uái", "uǎi", "uài"],
     "uang": ["uang", "uāng", "uáng", "uǎng", "uàng"],
     "iang": ["iang", "iāng", "iáng", "iǎng", "iàng"],
     "iong": ["iong", "iōng", "ióng", "iǒng", "iòng"],
@@ -137,61 +145,143 @@ function convertToMarkedTonePinyin(pinyin, newTone) {
         } catch (error) {
             console.log("error", error)
         }
-        
-        // console.log("声母韵母", shengYun, newPinyin);
 
     }
 
     return convertPinyin
 
 }
+const axios = Axios.create({
+    baseURL: 'http://nas.zhijianstudio.ink',
+    method: "PUT",
+    charset: 'utf-8',
+    headers: {
+        'Content-Type': 'application/json',
+        // 'Authorization': 'Token ' + token
+    }
+
+})
+// const cache = new LRU({ max: 10 })
+
+configure({ axios })
 
 export function PinyinInput(props) {
+    const range = props.range
+    const [{ data, loading, error }, putGuessData] = useAxios("/data/", { manual: true })
+    const getAppSelection = props.getAppSelection
+    const [isVisible, setIsVisible] = useState(new Array(props.pinyiner.length).fill(false));
+    const isUpdata=props.isUpdata
+    const setUpdata=props.setUpdata
+    const toggleVisibility = (e) => {
 
+        const i = [...isVisible]
+        i[e] = !i[e]
+        console.log(i);
+        setIsVisible(i);
+    };
+    
+
+    // const { ref } = props
+ 
+        // 这里是一些props参数
+        
+        //   useImperativeHandle(ref, () => ({
+        //   flushData: flushData,
+        //   }))
+  
+    function flushData() {
+        // 临时更新方案
+        setIsVisible(new Array(props.pinyiner.length).fill(false));
+        // setUpdata(new Array(props.pinyiner.length).fill(false));
+
+        }
+
+    function updataToneData(event, char, index) {
+        let text = ""
+        for (let t in props.pinyiner) {
+            text += props.pinyiner[t].contents
+        }
+        // 获取数据
+        console.info("上传数据", text)
+        putGuessData({
+
+            data: {
+                textIndex: index,
+                owner: 'test',
+                textContents: text,
+                pin: char.rubyString,
+                char: char.contents,
+            },
+            // params: {
+            //     item_id : props.char.contents
+            //   },
+        })
+    }
+    useEffect(() => {
+        console.log("useEffect", data)
+        if (data) {
+            const i = [...isUpdata]
+            i[data.textIndex] = true
+            console.log(i);
+            setUpdata(i);
+        }
+
+    }, [data])
+    useEffect(() => {
+        // update()
+        flushData()
+        console.log("useEffect", isUpdata)
+
+    }, [props.selectRange])
     function handleToneChange(event, char, index) {
         // 获取输入的音调
         const tone = event.target.value;
         // convertToMarkedTonePinyin(tone,syllableIndex)
-        char.rubyString = tone
-        props.setSelection()
+        // props.setSelection()
+        // char.rubyString = tone
+
+        var newpinyiner = props.pinyiner.slice();
+        newpinyiner[index].rubyString = tone;
+        props.setPinyiner(newpinyiner)
+
         console.log(tone);
 
     }
-    const getAppSelection=props.getAppSelection
-    const [isVisible, setIsVisible] = useState(new Array(props.pinyiner.length).fill(false));
-    const toggleVisibility = (e) => {
-        
-        const i = [...isVisible]
-        i[e]=!i[e]
-        console.log(i);
-        setIsVisible(i);
-      };
 
     return (
-        <WC>
-            <sp-label>声调编辑</sp-label>
 
-            {/* <input id="pinyin-input" type="text" value={pinyiner} onChange={handlePinyinChange} /> */}
-            {props.pinyiner.map((s, i) => (
-                <React.Fragment key={i}>
-                    <sp-divider size="medium"></sp-divider>
-                    <sp-label>{s.contents}</sp-label>
-                    <select value={s.rubyString} onChange={(e) => handleToneChange(e, s, i)}>
-                        <option value={convertToMarkedTonePinyin(s.rubyString, 1)}>一声</option>
-                        <option value={convertToMarkedTonePinyin(s.rubyString, 2)}>二声</option>
-                        <option value={convertToMarkedTonePinyin(s.rubyString, 3)}>三声</option>
-                        <option value={convertToMarkedTonePinyin(s.rubyString, 4)}>四声</option>
-                        <option value={convertToMarkedTonePinyin(s.rubyString, 0)}>轻声</option>
-                    </select>
-                    <input type="text" style={{ width: '40px' }} value={s.rubyString} onChange={(e) => handleToneChange(e, s, i)} />
-                    <button onClick={(e) => toggleVisibility(i)}>
-        {isVisible[i] ? '关闭' : '全局编辑'}
-      </button>
-      {isVisible[i] && <ChangeList app={app} char={s} getAppSelection={getAppSelection}></ChangeList>}
-                    {i < props.pinyiner.length - 1 && ''}
-                </React.Fragment>
-            ))}
-        </WC>
+    <WC>
+        <sp-label>声调编辑</sp-label>
+
+        {loading && <p>Loading...</p>}
+        {error && <p>Error!!!</p>}
+        {props.pinyiner.map((s, i) => (
+            <React.Fragment key={i}>
+                <sp-divider size="medium"></sp-divider>
+                <sp-label>{s.contents}</sp-label>
+                <select value={s.rubyString} onChange={(e) => handleToneChange(e, s, i)}>
+                    <option value={convertToMarkedTonePinyin(s.rubyString, 1)}>一声</option>
+                    <option value={convertToMarkedTonePinyin(s.rubyString, 2)}>二声</option>
+                    <option value={convertToMarkedTonePinyin(s.rubyString, 3)}>三声</option>
+                    <option value={convertToMarkedTonePinyin(s.rubyString, 4)}>四声</option>
+                    <option value={convertToMarkedTonePinyin(s.rubyString, 0)}>轻声</option>
+                </select>
+                <input type="text" style={{ width: '40px' }} value={s.rubyString} onChange={(e) => handleToneChange(e, s, i)} />
+                {/* <GuessEditor char={s} index={i} pinyiner={props.pinyiner} ></GuessEditor> */}
+
+                <button onClick={(e) => toggleVisibility(i)}>
+                    {isVisible[i] ? '关闭' : '全局编辑'}
+                </button>
+                <button style={{display:isUpdata[i]?"none":"inline"}}onClick={(e) => updataToneData(e, s, i)}>
+                    上传样本
+                </button>
+
+
+                {isVisible[i] && <ChangeList app={app} char={s} getAppSelection={getAppSelection} range={range}></ChangeList>}
+                {i < props.pinyiner.length - 1 && ''}
+            </React.Fragment>
+        ))}
+    </WC>
     );
 }
 

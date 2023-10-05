@@ -35,6 +35,7 @@ export function ChangeList(props) {
         const app = props.app
 
         const char = props.char
+        const range= props.range
         let result = []
         for (let i = 0; i < words.tags.length; i++) {
 
@@ -50,8 +51,8 @@ export function ChangeList(props) {
             }
             console.log("生成的查找项", patten, chars)
             app.findGrepPreferences.findWhat = patten;
-            
-            result=result.concat(props.getAppSelection("document")[1])
+            //这里也做了例外
+            result=result.concat(props.getAppSelection({theRange:range.theRange,patten:patten})[1])
             
         }
         setCharIndex({ length: result.length,index:charIndex.index,chars: result })

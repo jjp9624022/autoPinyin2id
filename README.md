@@ -1,6 +1,11 @@
 # Introduction
 
-This plugin is a good place to get started when building a UXP plugin using React. It comes defined with all the dependencies that you'll need to get started. As this is a React project, you'll need to do some initial configuration before this will be usable in InDesign.
+This plugin is a pinyin tool building a UXP plugin using React.  in InDesign.
+1. 实现的功能包括，基于nodepinyin库，本地生成拼音。
+2. 通过服务器生成拼音，服务器根据一些资料，有效的识别了多音字的情况，错误更少。
+3. 在indesign中选择文字，插件可以方便的编辑声调或者改变整个拼音。
+4. 在编辑编辑拼音的时候，可以推送多音字至服务器，服务器可记录词性、下一个词的声调、是否和上一个字重复、重要性。然后以决策树的机器学习方式，提供一键修改的功能。
+
 
 ## Documentation
 
